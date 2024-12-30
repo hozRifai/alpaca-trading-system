@@ -1,51 +1,54 @@
-version: '3.8'
-
 services:
   timescaledb:
     image: timescale/timescaledb:latest-pg14
-    environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+    env_file:
+      - ./env/.env.dev
     ports:
       - "5432:5432"
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d market_data"]  
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+
+
   market-data-service:
     build: ./services/market-data-service
-    environment:
-      - DATA_PROVIDER=${DATA_PROVIDER}
-      - POLYGON_API_KEY=${POLYGON_API_KEY}
-      - DB_CONNECTION=${DB_CONNECTION}
+    env_file:
+      - ./env/.env.dev
     ports:
       - "8002:8002"
     depends_on:
       - timescaledb
 
-  broker-service:
-    build: ./services/broker-service
-    environment:
-      - BROKER_PROVIDER=${BROKER_PROVIDER}
-      - ALPACA_API_KEY=${ALPACA_API_KEY}
-      - ALPACA_SECRET_KEY=${ALPACA_SECRET_KEY}
-      - DB_CONNECTION=${DB_CONNECTION}
-    ports:
-      - "8001:8001"
-    depends_on:
-      - timescaledb
+  # broker-service:
+  #   build: ./services/broker-service
+  #   environment:
+  #     - BROKER_PROVIDER=${BROKER_PROVIDER}
+  #     - ALPACA_API_KEY=${ALPACA_API_KEY}
+  #     - ALPACA_SECRET_KEY=${ALPACA_SECRET_KEY}
+  #     - DB_CONNECTION=${DB_CONNECTION}
+  #   ports:
+  #     - "8001:8001"
+  #   depends_on:
+  #     - timescaledb
 
-  strategy-service:
-    build: ./services/strategy-service
-    environment:
-      - BROKER_SERVICE_URL=${BROKER_SERVICE_URL}
-      - MARKET_DATA_URL=${MARKET_DATA_URL}
-      - DB_CONNECTION=${DB_CONNECTION}
-    ports:
-      - "8000:8000"
-    depends_on:
-      - broker-service
-      - market-data-service
+  # strategy-service:
+  #   build: ./services/strategy-service
+  #   environment:
+  #     - BROKER_SERVICE_URL=${BROKER_SERVICE_URL}
+  #     - MARKET_DATA_URL=${MARKET_DATA_URL}
+  #     - DB_CONNECTION=${DB_CONNECTION}
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     - broker-service
+  #     - market-data-service
 
 volumes:
   timescaledb_data:
