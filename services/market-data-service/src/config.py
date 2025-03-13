@@ -29,4 +29,3 @@ print("Loaded settings:")
 print(f"DB_USER: {settings.DB_USER}")
 print(f"DB_HOST: {settings.DB_HOST}")
 print(f"DB_NAME: {settings.DB_NAME}")
-
