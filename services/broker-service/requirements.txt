@@ -1,0 +1,4 @@
+uvicorn>=0.15.0
+fastapi>=0.68.0
+sqlalchemy>=1.4.0
+alpaca-py>=0.13.0

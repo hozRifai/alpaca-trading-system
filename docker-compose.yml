@@ -1,0 +1,71 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    env_file:
+      - ./env/.env.dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d market_data"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  transactionsdb:
+    image: timescale/timescaledb:latest-pg14 
+    env_file:
+      - ./env/.env.dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - transactionsdb_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: transactions
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d transactions"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  broker-service:
+    build: ./services/broker-service
+    environment:
+      - BROKER_PROVIDER=${BROKER_PROVIDER}
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_SECRET_KEY=${ALPACA_SECRET_KEY}
+      - DB_CONNECTION=${DB_CONNECTION}
+    ports:
+      - "8001:8001"
+    depends_on:
+      - timescaledb
+
+  market-data-service:
+    build: ./services/market-data-service
+    env_file:
+      - ./env/.env.dev
+    ports:
+      - "8002:8002"
+    depends_on:
+      - timescaledb
+
+  strategy-service:
+    build: ./services/strategy-service
+    environment:
+      - BROKER_SERVICE_URL=${BROKER_SERVICE_URL}
+      - MARKET_DATA_URL=${MARKET_DATA_URL}
+      - MARKET_DB_CONNECTION=${DB_CONNECTION}
+      - TRANSACTIONS_DB_CONNECTION=postgresql://admin:${DB_PASSWORD}@transactionsdb:5432/transactions
+    ports:
+      - "8000:8000"
+    depends_on:
+      - broker-service
+      - market-data-service
+      - transactionsdb
+
+volumes:
+  timescaledb_data:
+  transactionsdb_data:
